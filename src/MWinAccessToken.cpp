@@ -17,7 +17,7 @@
 
 */
 
-//v1.5 copyright Comine.com 20170226U1411
+//v1.6 copyright Comine.com 20170418T1028
 #include <windows.h>
 #include "MStdLib.h"
 #include "MString.h"
@@ -30,18 +30,14 @@
 //******************************************************
 void MWinAccessToken::ClearObject(void)
 	{
+	mhAccessToken=INVALID_HANDLE_VALUE;
+	mTakeOwnership=false;
 	}
 
 
 ////////////////////////////////////////////////
-MWinAccessToken::MWinAccessToken(bool create)
-	{
-	ClearObject();
-	if(create==true && Create()==false)
-		{
-		return;
-		}
-	}
+MWinAccessToken::MWinAccessToken(void)
+	{  ClearObject();  }
 
 
 ////////////////////////////////////////////////
@@ -50,7 +46,24 @@ MWinAccessToken::~MWinAccessToken(void)
 
 
 ////////////////////////////////////////////////
-bool MWinAccessToken::Create(void)
+bool MWinAccessToken::Create(DWORD access)
+	{
+	Destroy();
+	if (OpenProcessToken(GetCurrentProcess(),access, &mhAccessToken)==FALSE)
+		{
+		Destroy();
+		return false;
+		}
+
+	// Take Ownership of handle to release on destruction
+	mTakeOwnership=true;
+
+	return true;
+	}
+
+
+////////////////////////////////////////////////
+bool MWinAccessToken::Create(HANDLE haccesstoken,bool takeownship)
 	{
 	Destroy();
 	return true;
@@ -60,6 +73,12 @@ bool MWinAccessToken::Create(void)
 ////////////////////////////////////////////////
 bool MWinAccessToken::Destroy(void)
 	{
+	if(mhAccessToken!=INVALID_HANDLE_VALUE && mTakeOwnership==true)
+		{
+		CloseHandle(mhAccessToken);
+		mhAccessToken=INVALID_HANDLE_VALUE;
+		}
+
 	ClearObject();
 	return true;
 	}
@@ -68,20 +87,11 @@ bool MWinAccessToken::Destroy(void)
 ///////////////////////////////////////////////
 bool MWinAccessToken::AddPrivilege(const wchar_t *privledge)
 	{
-	// Get a token for this process.
-	HANDLE htoken;
-	if (OpenProcessToken(GetCurrentProcess(),TOKEN_WRITE | TOKEN_QUERY, &htoken)==FALSE)
-		{
-		return false;
-		}
-
 	TOKEN_PRIVILEGES tokpriv;
 	MStdMemSet(&tokpriv,0,sizeof(tokpriv) );
 
-	if(LookupPrivilegeValueW(NULL, privledge
-				,&(tokpriv.Privileges[0].Luid) )==FALSE)
+	if(LookupPrivilegeValueW(NULL, privledge,&(tokpriv.Privileges[0].Luid) )==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
@@ -89,13 +99,11 @@ bool MWinAccessToken::AddPrivilege(const wchar_t *privledge)
 	tokpriv.PrivilegeCount = 1;
 	tokpriv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED; 
 
-	if(AdjustTokenPrivileges(htoken, FALSE, &tokpriv, 0,(PTOKEN_PRIVILEGES)NULL, 0)==FALSE)
+	if(AdjustTokenPrivileges(mhAccessToken, FALSE, &tokpriv, 0,(PTOKEN_PRIVILEGES)NULL, 0)==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
-	CloseHandle(htoken);
 	return true;
 	}
 
@@ -103,21 +111,11 @@ bool MWinAccessToken::AddPrivilege(const wchar_t *privledge)
 ///////////////////////////////////////////////
 bool MWinAccessToken::DelPrivilege(const wchar_t *privledge)
 	{
-	// Get a token for this process.
-	HANDLE htoken;
-	if (OpenProcessToken(GetCurrentProcess(),
-			TOKEN_WRITE | TOKEN_QUERY, &htoken)==FALSE)
-		{
-		return false;
-		}
-
 	TOKEN_PRIVILEGES tokpriv;
 	MStdMemSet(&tokpriv,0,sizeof(tokpriv) );
 
-	if(LookupPrivilegeValueW(NULL, privledge
-				,&(tokpriv.Privileges[0].Luid) )==FALSE)
+	if(LookupPrivilegeValueW(NULL, privledge,&(tokpriv.Privileges[0].Luid) )==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
@@ -125,14 +123,11 @@ bool MWinAccessToken::DelPrivilege(const wchar_t *privledge)
 	tokpriv.PrivilegeCount = 1;
 	tokpriv.Privileges[0].Attributes = SE_PRIVILEGE_REMOVED; 
 
-	if(AdjustTokenPrivileges(htoken, FALSE, &tokpriv, 0,
-			(PTOKEN_PRIVILEGES)NULL, 0)==FALSE)
+	if(AdjustTokenPrivileges(mhAccessToken, FALSE, &tokpriv, 0,(PTOKEN_PRIVILEGES)NULL, 0)==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
-	CloseHandle(htoken);
 	return true;
 	}
 
@@ -140,36 +135,25 @@ bool MWinAccessToken::DelPrivilege(const wchar_t *privledge)
 ////////////////////////////////////////////////////////
 bool MWinAccessToken::HasPrivilege(const wchar_t *privledge)
 	{
-	// Get a token for this process.
-	HANDLE htoken;
-	if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &htoken)==FALSE)
-		{
-		return false;
-		}
-
 	// Lookup Privilege Locally Unique ID(LUID)
 	LUID luid;
 	if(LookupPrivilegeValue(NULL,privledge,&luid)==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
 	// Get information buffer size
 	DWORD length=0;
-	if(GetTokenInformation(htoken,TokenPrivileges,NULL
-			,0,&length)==FALSE  && length==0)
+	if(GetTokenInformation(mhAccessToken,TokenPrivileges,NULL,0,&length)==FALSE  && length==0)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
 	// Now We Allocate space for the privldge array
 	MBuffer buffer(length);
-	if(GetTokenInformation(htoken,TokenPrivileges,buffer.GetBuffer()
+	if(GetTokenInformation(mhAccessToken,TokenPrivileges,buffer.GetBuffer()
 			,buffer.GetSize(),&length)==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
@@ -188,12 +172,10 @@ bool MWinAccessToken::HasPrivilege(const wchar_t *privledge)
 		
 		if((attribute|SE_PRIVILEGE_ENABLED)>0)
 			{
-			CloseHandle(htoken);
 			return true;
 			}
 		}
 	
-	CloseHandle(htoken);
 	return false;
 	}
 
@@ -201,21 +183,12 @@ bool MWinAccessToken::HasPrivilege(const wchar_t *privledge)
 ////////////////////////////////////////////////////////
 bool MWinAccessToken::RemoveAllPrivileges(void)
 	{
-	// Get a token for this process.
-	HANDLE htoken;
-	if (OpenProcessToken(GetCurrentProcess(),
-			TOKEN_WRITE | TOKEN_QUERY, &htoken)==FALSE)
+	// Adjust all token privledges
+	if(AdjustTokenPrivileges(mhAccessToken, TRUE, NULL, 0,NULL, 0)==FALSE)
 		{
 		return false;
 		}
 
-	if(AdjustTokenPrivileges(htoken, TRUE, NULL, 0,NULL, 0)==FALSE)
-		{
-		CloseHandle(htoken);
-		return false;
-		}
-
-	CloseHandle(htoken);
 	return true;	
 	}
 
@@ -223,26 +196,16 @@ bool MWinAccessToken::RemoveAllPrivileges(void)
 ////////////////////////////////////////////////
 bool MWinAccessToken::GetOwner(MString &owner,SID_NAME_USE &usertype)
 	{
-	// Get a token for this process.
-	HANDLE htoken;
-	if (OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY, &htoken)==FALSE)
-		{
-		return false;
-		}
-
 	DWORD length=0;
-	if(GetTokenInformation(htoken,TokenOwner,NULL,0,&length)==FALSE 
+	if(GetTokenInformation(mhAccessToken,TokenOwner,NULL,0,&length)==FALSE 
 				&& length==0)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
 	MBuffer buffer(length);
-	if(GetTokenInformation(htoken,TokenOwner,buffer.GetBuffer()
-				,buffer.GetSize(),&length)==FALSE)
+	if(GetTokenInformation(mhAccessToken,TokenOwner,buffer.GetBuffer(),buffer.GetSize(),&length)==FALSE)
 		{
-		CloseHandle(htoken);
 		return false;
 		}
 
@@ -266,7 +229,6 @@ bool MWinAccessToken::GetOwner(MString &owner,SID_NAME_USE &usertype)
 		return false;
 		}
 
-	CloseHandle(htoken);
 	return true;
 	}
 

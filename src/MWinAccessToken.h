@@ -17,7 +17,7 @@
 
 */
 
-//v1.5 copyright Comine.com 20170226U1411
+//v1.6 copyright Comine.com 20170418T1028
 #ifndef MWinAccessToken_h
 #define MWinAccessToken_h
 
@@ -31,14 +31,18 @@
 //******************************************************
 class MWinAccessToken
 	{
+	bool mTakeOwnership;
+	HANDLE mhAccessToken;
+
 	////////////////////////////////////////////////
 	void ClearObject(void);
 	
 	////////////////////////////////////////////////
 	public:
-	MWinAccessToken(bool create=false);
+	MWinAccessToken(void);
 	~MWinAccessToken(void);
-	bool Create(void);
+	bool Create(DWORD access=TOKEN_WRITE | TOKEN_QUERY);								// Get Current Process Handle
+	bool Create(HANDLE haccesstoken,bool takeownship=false);
 	bool Destroy(void);
 	bool AddPrivilege(const wchar_t *privledge);	// Add a privledge
 	bool DelPrivilege(const wchar_t *privledge);	// Once a priv is removed, it may not be added(some os)

@@ -17,7 +17,7 @@
 
 */
 
-//v2.13 copyright Comine.com 20170124T1209
+//v2.14 copyright Comine.com 20170309R0657
 #ifndef MStdLib_h
 #define MStdLib_h
 
@@ -1515,6 +1515,9 @@ class MStdArray
 	//////////////////////////////////////////////////////
 	MStdArray(int length)
 		{
+		mArray = 0;
+		mArrayLength = 0;
+
 		if(Create(length)==false)
 			{
 			return;
@@ -1525,6 +1528,9 @@ class MStdArray
 	//////////////////////////////////////////////////////
 	MStdArray(MStdArray &refobj,int newlength=0)
 		{
+		mArray = 0;
+		mArrayLength = 0;
+
 		if(Create(refobj,newlength)==false)
 			{
 			return;

@@ -17,7 +17,7 @@
 
 */
 
-//v2.9 copyright Comine.com 20140518U0936
+//v3.2 copyright Comine.com 20170409U0957
 #ifndef MString_h
 #define MString_h
 
@@ -44,12 +44,12 @@ class MString
 	MString(void);
 	MString(const char *str);
 	MString(const wchar_t *str);
-	MString(MString &str);				// Copy Constructor
+	MString(const MString &str);				// Copy Constructor
 	MString(MStringWide &str);
 	~MString(void);
 	bool Create(const char *str);
 	bool Create(const wchar_t *str);
-	bool Create(MString &str);
+	bool Create(const MString &str);
 	bool Create(MStringWide &str);
 	bool Create(char ch);
 	bool Create(wchar_t ch);
@@ -86,6 +86,7 @@ class MString
 	int Compare(MString &string);
 	int Compare(MStringWide &string);
 	bool Write(MIWriter &writer) const;
+	bool Zero(void);										// zero out the memory
 
 	/////////////// Class Methods ////////////////////
 	// Basic String Copy
