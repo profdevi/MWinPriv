@@ -17,7 +17,7 @@
 
 */
 
-//v2.14 copyright Comine.com 20170309R0657
+//v2.15 copyright Comine.com 20170425T0934
 /*
 Bug Notice:
 	MStdSPrintf(const wchar_t *)  seems to be failing.
@@ -60,10 +60,12 @@ Bug Notice:
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <math.h>
 #include <wchar.h>
 #include <pwd.h>
 #include <uuid/uuid.h>
+#include <linux/limits.h>
 #endif
 
 //***************************************************
@@ -1376,12 +1378,12 @@ bool MStdFileCopy(const char *srcfile,const char *dstfile,bool stopifexists,bool
 
 	/////////////////////////////////////
 	#elif (defined(MSTDLIB_API_LINUX) )
-	if(stopifexists==true && Exists(dstfile)==true)
+	if(stopifexists==true && MStdFileExists(dstfile)==true)
 		{
 		return false;
 		}
 
-	MBuffer buffer;
+	MStdArray<char> buffer;
 	if(buffer.Create(2048)==false)
 		{
 		return false;
@@ -1404,13 +1406,13 @@ bool MStdFileCopy(const char *srcfile,const char *dstfile,bool stopifexists,bool
 	int writeamount;
 	for(;;)
 		{
-		readamount=read(fdsrc,buffer.GetBuffer(),buffer.GetSize());
+		readamount=read(fdsrc,buffer.Get(),buffer.GetLength());
 		if(readamount<=0)
 			{
 			break;
 			}
 
-		writeamount=write(fddst,buffer.GetBuffer(),readamount);
+		writeamount=write(fddst,buffer.Get(),readamount);
 		if(writeamount<=0)
 			{
 			break;
@@ -1567,89 +1569,6 @@ bool MStdExec(const char *cmd)
 	#endif 
 	}
 
-
-//////////////////////////////////////////////////
-bool MStdPathGetAbsolute(const char *filename, char *retbuffer,int &retbuflen)
-	{
-	/////////////////////////////////////////////////////
-	#if ( defined(MSTDLIB_API_WINDOWS) )
-	char buffer[MStdPathMaxSize];
-
-	if(filename==NULL || *filename==0)
-		{
-		return false;
-		}
-
-	char *filenameonly=NULL;
-	DWORD length=GetFullPathNameA(filename,sizeof(buffer),buffer-2,&filenameonly);
-	if(length==0)
-		{
-		return false;
-		}
-
-	if(length>=(DWORD)sizeof(buffer)-2 )
-		{
-		return false;
-		}
-
-	// Convert to Canonical Path with \ converted to /
-	MStdPathSetSlash(buffer);
-
-	MStdStrCpy(retbuffer,retbuflen,buffer);
-
-	return true;
-
-	/////////////////////////////////////////////////
-	#elif (defined(MSTDLIB_API_LINUX) )
-	char buffer[PATH_MAX];
-	if(buffer.Create(PATH_MAX)==false)
-		{
-		return false;
-		}
-
-	if(Exists(filename)==true)
-		{
-		if(realpath(filename,buffer)==NULL)
-			{
-			return false;
-			}
-		}
-	else if(*filename=='/')
-		{
-		//File is already an absolute path
-		MStdStrCpy(buffer,filename);
-		}
-	else
-		{
-		// Build up path using cwd
-		char *bufptr=buffer;
-		getcwd(bufptr,sizeof(buffer) );
-
-		int length=MStdStrLen(bufptr);
-		if(length<=0)
-			{
-			return false;
-			}
-
-		if(bufptr[length-1]!='/')
-			{
-			buffer.StringAppend("/");
-			}
-
-		buffer.StringAppend(filename);
-		}
-	
-
-	if(absolutepath.Create(buffer.GetBuffer())==false)
-		{
-		return false;
-		}
-
-	return true;
-	#endif // MSTDLIB_API_WINDOWS
-
-	return false;
-	}
 
 //////////////////////////////////////////////////
 int MStdAToI(const char *str)
@@ -2810,7 +2729,7 @@ bool MStdDirGet(MStdArray<char> &path)
 	////////////////////////////////////////
 	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
 	char *buffer=path.Get();
-	const char *retval=getcwd(buffer,bufferlen-1);
+	const char *retval=getcwd(buffer,path.GetLength()-2);
 	if(retval==NULL)
 		{
 		return false;
