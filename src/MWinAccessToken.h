@@ -17,7 +17,7 @@
 
 */
 
-//v1.7 copyright Comine.com 20170717T1350
+//v1.7 copyright Comine.com 20170717T1434
 #ifndef MWinAccessToken_h
 #define MWinAccessToken_h
 
