@@ -17,7 +17,7 @@
 
 */
 
-//v2.15 copyright Comine.com 20170425T0934
+//v2.17 copyright Comine.com 20170709U0636
 #ifndef MStdLib_h
 #define MStdLib_h
 
@@ -240,6 +240,12 @@ const char *MStdStr(int value);							// Build a temp string
 const char *MStdStr(float value);						// Build a temp string
 const char *MStdStr(double value);						// Build a temp string
 
+bool MStdStr(bool value,char strout[],int stroutlen);	// Convert type to string		
+bool MStdStr(int value,char strout[],int stroutlen);	// Convert type to string		
+bool MStdStr(float value,char strout[],int stroutlen);	// Convert type to string		
+bool MStdStr(double value,char strout[],int stroutlen);	// Convert type to string		
+
+
 /////////////////////////////////////////////////
 // Wide String Operations
 int MStdSPrintf(wchar_t *target,int targetsize,const wchar_t *format,...);	// String Formated Printf
@@ -247,6 +253,12 @@ const wchar_t *MStdStrWide(bool value);					// Build a temp string
 const wchar_t *MStdStrWide(int value);					// Build a temp string
 const wchar_t *MStdStrWide(float value);				// Build a temp string
 const wchar_t *MStdStrWide(double value);				// Build a temp string
+
+bool MStdStrWide(bool value,wchar_t strout[],int stroutlen);	// Convert type to string		
+bool MStdStrWide(int value,wchar_t strout[],int stroutlen);		// Convert type to string		
+bool MStdStrWide(float value,wchar_t strout[],int stroutlen);	// Convert type to string		
+bool MStdStrWide(double value,wchar_t strout[],int stroutlen);	// Convert type to string		
+
 
 //////////////////////////////////////////////////
 bool MStdStrIsMember(char ch,const char *str);			// Check if char is in string
@@ -619,6 +631,7 @@ extern const double MStdLibConstPi;
 //////////////////////////////////////////////////
 // Platform Specific Information
 bool MStdGetMachineName(char *buffer,int bufferlen);
+unsigned int MStdGetProcessID(void);							// Get Current Process ID
 bool MStdGetOSRoot(char *buffer,int bufferlen);					// returns: "c:/" or "/" based on os
 bool MStdGetOSPathSeperator(char *buffer,int bufferlen);		// returns: ";" or ":"
 bool MStdIsUnix(void);											//=true if UNIX like OS (Linux,...)

@@ -17,7 +17,7 @@
 
 */
 
-//v2.15 copyright Comine.com 20170425T0934
+//v2.17 copyright Comine.com 20170709U0636
 /*
 Bug Notice:
 	MStdSPrintf(const wchar_t *)  seems to be failing.
@@ -682,6 +682,50 @@ const char *MStdStr(double value)
 	}
 
 
+//////////////////////////////////////////////////////
+bool MStdStr(bool value,char strout[],int stroutlen)
+	{
+	MStdAssert(strout!=0 && stroutlen>=6);
+
+	if(value==true)
+		{  MStdStrCpy(strout,"true");  }
+	else
+		{  MStdStrCpy(strout,"false");  }
+
+	return true;	
+	}
+
+
+//////////////////////////////////////////////////////
+bool MStdStr(int value,char strout[],int stroutlen)
+	{
+	const int length=MStdSPrintf(strout,stroutlen,"%d",value);
+	if(length>stroutlen+1 || length<=0) { return false; }
+		
+	return true;
+	}
+
+
+///////////////////////////////////////////////////////
+bool MStdStr(float value,char strout[],int stroutlen)
+	{
+	const int length=MStdSPrintf(strout,stroutlen,"%f",value);
+	if(length>stroutlen+1 || length<=0) { return false; }
+		
+	return true;
+	}
+
+
+///////////////////////////////////////////////////////
+bool MStdStr(double value,char strout[],int stroutlen)
+	{
+	const int length=MStdSPrintf(strout,stroutlen,"%g",value);
+	if(length>stroutlen+1 || length<=0) { return false; }
+		
+	return true;
+	}
+
+
 /////////////////////////////////////////////
 int MStdSPrintf(wchar_t *target,int targetsize,const wchar_t *format,...)
 	{
@@ -775,6 +819,50 @@ const wchar_t *MStdStrWide(double value)
 	{
 	MStdSPrintf(GTempWideBuffer,sizeof(GTempWideBuffer)/sizeof(wchar_t),L"%lf",value);
 	return GTempWideBuffer;
+	}
+
+
+//////////////////////////////////////////////////////
+bool MStdStrWide(bool value,wchar_t strout[],int stroutlen)
+	{
+	MStdAssert(strout!=0 && stroutlen>=6);
+
+	if(value==true)
+		{  MStdStrCpy(strout,L"true");  }
+	else
+		{  MStdStrCpy(strout,L"false");  }
+
+	return true;	
+	}
+
+
+//////////////////////////////////////////////////////
+bool MStdStrWide(int value,wchar_t strout[],int stroutlen)
+	{
+	const int length=MStdSPrintf(strout,stroutlen,L"%d",value);
+	if(length>stroutlen+1 || length<=0) { return false; }
+		
+	return true;
+	}
+
+
+///////////////////////////////////////////////////////
+bool MStdStrWide(float value,wchar_t strout[],int stroutlen)
+	{
+	const int length=MStdSPrintf(strout,stroutlen,L"%f",value);
+	if(length>stroutlen+1 || length<=0) { return false; }
+		
+	return true;
+	}
+
+
+///////////////////////////////////////////////////////
+bool MStdStrWide(double value,wchar_t strout[],int stroutlen)
+	{
+	const int length=MStdSPrintf(strout,stroutlen,L"%g",value);
+	if(length>stroutlen+1 || length<=0) { return false; }
+		
+	return true;
 	}
 
 
@@ -2249,6 +2337,21 @@ bool MStdGetMachineName(char *buffer,int bufferlen)
 	return true;
 
 	#endif
+	}
+
+
+//////////////////////////////////////////////////////////
+unsigned int MStdGetProcessID(void)
+	{
+	#if ( defined(MSTDLIB_OS_WINDOWSRT) || defined(MSTDLIB_OS_WINDOWS) || defined(MSTDLIB_OS_WINDOWSOLD) || defined(MSTDLIB_OS_MINGW) )
+	return (unsigned int)GetCurrentProcessId();
+
+	////////////////////////////////////////
+	#elif ( defined(MSTDLIB_OS_LINUX) || defined(MSTDLIB_OS_OTHER) || defined(MSTDLIB_OS_MACOS) || defined(MSTDLIB_OS_IPHONE) )
+
+	return (unsigned int) getpid();
+
+	#endif	
 	}
 
 

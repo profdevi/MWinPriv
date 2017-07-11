@@ -17,11 +17,12 @@
 
 */
 
-//v1.6 copyright Comine.com 20170418T1028
+//v1.7 copyright Comine.com 20170717T1350
 #include <windows.h>
 #include "MStdLib.h"
 #include "MString.h"
 #include "MBuffer.h"
+#include "MWinPrivilegeSet.h"
 #include "MWinAccessToken.h"
 
 
@@ -85,7 +86,7 @@ bool MWinAccessToken::Destroy(void)
 
 
 ///////////////////////////////////////////////
-bool MWinAccessToken::AddPrivilege(const wchar_t *privledge)
+bool MWinAccessToken::EnablePrivilege(const wchar_t *privledge,bool enable)
 	{
 	TOKEN_PRIVILEGES tokpriv;
 	MStdMemSet(&tokpriv,0,sizeof(tokpriv) );
@@ -97,31 +98,14 @@ bool MWinAccessToken::AddPrivilege(const wchar_t *privledge)
 
 	// Change Privledges
 	tokpriv.PrivilegeCount = 1;
-	tokpriv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED; 
-
-	if(AdjustTokenPrivileges(mhAccessToken, FALSE, &tokpriv, 0,(PTOKEN_PRIVILEGES)NULL, 0)==FALSE)
+	if(enable==true)
 		{
-		return false;
+		tokpriv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED; 
 		}
-
-	return true;
-	}
-
-
-///////////////////////////////////////////////
-bool MWinAccessToken::DelPrivilege(const wchar_t *privledge)
-	{
-	TOKEN_PRIVILEGES tokpriv;
-	MStdMemSet(&tokpriv,0,sizeof(tokpriv) );
-
-	if(LookupPrivilegeValueW(NULL, privledge,&(tokpriv.Privileges[0].Luid) )==FALSE)
+	else
 		{
-		return false;
+		tokpriv.Privileges[0].Attributes = 0; 
 		}
-
-	// Change Privledges
-	tokpriv.PrivilegeCount = 1;
-	tokpriv.Privileges[0].Attributes = SE_PRIVILEGE_REMOVED; 
 
 	if(AdjustTokenPrivileges(mhAccessToken, FALSE, &tokpriv, 0,(PTOKEN_PRIVILEGES)NULL, 0)==FALSE)
 		{
@@ -170,7 +154,7 @@ bool MWinAccessToken::HasPrivilege(const wchar_t *privledge)
 		//=We have found the luid
 		DWORD attribute=privileges->Privileges[i].Attributes;
 		
-		if((attribute|SE_PRIVILEGE_ENABLED)>0)
+		if((attribute & SE_PRIVILEGE_ENABLED)>0)
 			{
 			return true;
 			}
@@ -181,7 +165,7 @@ bool MWinAccessToken::HasPrivilege(const wchar_t *privledge)
 
 
 ////////////////////////////////////////////////////////
-bool MWinAccessToken::RemoveAllPrivileges(void)
+bool MWinAccessToken::DisableAllPrivileges(void)
 	{
 	// Adjust all token privledges
 	if(AdjustTokenPrivileges(mhAccessToken, TRUE, NULL, 0,NULL, 0)==FALSE)
@@ -365,4 +349,31 @@ bool MWinAccessToken::Print(void)
 	
 	return true;
 	}
+
+
+/////////////////////////////////////////////////////////////////////
+bool MWinAccessToken::GetPrivileges(MWinPrivilegeSet &privs)
+	{
+	if(privs.CreateFromProcess(mhAccessToken)==false)
+		{
+		return false;
+		}
+
+	return true;
+	}
+
+
+/////////////////////////////////////////////////////////////////////
+bool MWinAccessToken::SetPrivileges(MWinPrivilegeSet &privs)
+	{
+
+	if(AdjustTokenPrivileges(mhAccessToken, FALSE, privs.GetPrivileges(), 0,(PTOKEN_PRIVILEGES)NULL, NULL)==FALSE)
+		{
+		return false;
+		}
+
+	return true;	
+	}
+	
+
 
